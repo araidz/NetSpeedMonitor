@@ -1,26 +1,9 @@
 import SwiftUI
 import ServiceManagement
 import SystemConfiguration
+import os.log
 
-enum NetSpeedUpdateInterval: Int, CaseIterable, Identifiable {
-    case Sec1 = 1
-    case Sec2 = 2
-    case Sec5 = 5
-    case Sec10 = 10
-    case Sec30 = 30
-
-    var id: Int { self.rawValue }
-
-    var displayName: String {
-        switch self {
-        case .Sec1: return "1s"
-        case .Sec2: return "2s"
-        case .Sec5: return "5s"
-        case .Sec10: return "10s"
-        case .Sec30: return "30s"
-        }
-    }
-}
+public let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "elegracer")
 
 @MainActor
 @Observable
@@ -28,24 +11,16 @@ final class MenuBarState {
 
     // MARK: - Persisted settings
 
-    /// Keys used to persist settings in `UserDefaults`.
-    private enum DefaultsKey {
-        static let autoLaunch = "AutoLaunchEnabled"
-        static let updateInterval = "NetSpeedUpdateInterval"
-    }
+    /// Key used to persist the launch-at-login preference in `UserDefaults`.
+    private static let autoLaunchKey = "AutoLaunchEnabled"
+
+    /// Fixed sampling interval, in seconds.
+    private static let updateIntervalSeconds = 1
 
     var autoLaunchEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(autoLaunchEnabled, forKey: DefaultsKey.autoLaunch)
+            UserDefaults.standard.set(autoLaunchEnabled, forKey: Self.autoLaunchKey)
             updateAutoLaunchStatus()
-        }
-    }
-
-    var netSpeedUpdateInterval: NetSpeedUpdateInterval {
-        didSet {
-            UserDefaults.standard.set(netSpeedUpdateInterval.rawValue, forKey: DefaultsKey.updateInterval)
-            logger.info("netSpeedUpdateInterval, \(self.netSpeedUpdateInterval.displayName)")
-            restartMonitoring()
         }
     }
 
@@ -70,11 +45,9 @@ final class MenuBarState {
     // MARK: - Lifecycle
 
     init() {
-        // Restore persisted settings. (didSet observers do not fire for these
+        // Restore persisted setting. (didSet observers do not fire for these
         // initial assignments inside the initializer.)
-        autoLaunchEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.autoLaunch)
-        let storedInterval = UserDefaults.standard.integer(forKey: DefaultsKey.updateInterval)
-        netSpeedUpdateInterval = NetSpeedUpdateInterval(rawValue: storedInterval) ?? .Sec1
+        autoLaunchEnabled = UserDefaults.standard.bool(forKey: Self.autoLaunchKey)
 
         // Reflect the real login-item state rather than our stored guess.
         autoLaunchEnabled = currentAutoLaunchStatus()
@@ -119,7 +92,7 @@ final class MenuBarState {
         return global?.value(forKey: "PrimaryInterface") as? String
     }
 
-    /// Takes a single traffic sample and updates the published speeds (in MB/s).
+    /// Takes a single traffic sample and updates the speeds (in MB/s).
     private func sample() {
         primaryInterface = findPrimaryInterface()
         guard let primaryInterface else { return }
@@ -141,14 +114,9 @@ final class MenuBarState {
             guard let self else { return }
             while !Task.isCancelled {
                 self.sample()
-                try? await Task.sleep(for: .seconds(self.netSpeedUpdateInterval.rawValue))
+                try? await Task.sleep(for: .seconds(Self.updateIntervalSeconds))
             }
         }
         logger.info("startMonitoring")
-    }
-
-    private func restartMonitoring() {
-        logger.info("restartMonitoring")
-        startMonitoring()
     }
 }

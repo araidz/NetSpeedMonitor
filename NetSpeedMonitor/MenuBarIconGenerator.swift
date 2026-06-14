@@ -55,14 +55,14 @@ final class MenuBarIconGenerator {
 
     // MARK: - Helpers
 
-    /// Builds one shaded line, e.g. "↑ 12.34".
+    /// Builds one shaded line with the arrow on the right, e.g. "12.34 ↑".
     private static func line(
         symbol: String,
         valueMBps: Double,
         font: NSFont,
         paragraph: NSParagraphStyle
     ) -> NSAttributedString {
-        let text = "\(symbol) \(format(valueMBps))"
+        let text = "\(format(valueMBps)) \(symbol)"
         return NSAttributedString(string: text, attributes: [
             .font: font,
             .foregroundColor: color(forMBps: valueMBps),
