@@ -1,25 +1,53 @@
 # NetSpeedMonitor
 
-Just a minimal menu bar macOS app.
+A minimal macOS menu bar app that shows your live upload/download speed.
 
-It runs `sysctl` with c interface in a repeating timer.
+> **Fork notice**
+> This is a personal fork of [**elegracer/NetSpeedMonitor**](https://github.com/elegracer/NetSpeedMonitor),
+> customized to my own taste. All credit for the original app and its network
+> sampling core goes to the upstream author. Licensed under MIT (see `LICENSE`).
 
-Use at your own risk.
+It reads per-interface byte counters via `sysctl` (a small C++/Objective-C++
+core) and renders the speeds directly into the menu bar.
 
-# Functions
+## What this fork changes
 
-1. Start at login.
-2. Set different update intervals, now with 5 options: 1s, 2s, 5s, 10s, 30s.
-3. Open Activity Monitor. When you notice abnormal network traffic, you could open Activity Monitor to check what process is the cause.
+Compared to upstream, this version:
 
-# Note
+- **Always shows MB/s** — no automatic unit switching between B/KB/MB/GB.
+- **Fixed 1-second refresh** — removed the selectable update intervals.
+- **Bigger, bolder, monospaced-digit readout** that's easier to read at a glance.
+- **Monochrome speed shading** — each line's opacity reflects its speed band, so
+  you can tell the throughput range without reading the number:
 
-For per-process network traffic monitoring, it usually requires `nettop` which is quite cpu-heavy making it impractical to keep running at the background. Implementing it to run only when the user click the status item to make the menu showing may be a good choice.
+  | Band     | Speed         | Shade            |
+  | -------- | ------------- | ---------------- |
+  | Fast     | ≥ 1 MB/s      | full strength    |
+  | Moderate | 0.1 – 1 MB/s  | 70% opacity      |
+  | Slow     | 0.01 – 0.1    | 45% opacity      |
+  | Idle     | < 0.01 MB/s   | 30% opacity      |
 
-From v1.8, the UI is built using SwiftUI, on macOS 15, with minimum system version macOS 14.6. Since I haven't successfully built it with lower version of github action runner images, it is what it is now. Later if I have the chance, I would make it compatible with lower version of macOS.
+- **Arrows on the right** of the figures (`12.34 ↑` / `1.23 ↓`), with tightened
+  line and edge spacing.
+- **Trimmed menu** — clicking the readout shows just **Start at Login** and **Quit**.
+- **Modernized internals** — the state layer uses Swift's `@Observable` macro and
+  `async`/`await` instead of Combine + `Timer`.
 
-Any PR for feature enhancement or compatibility improvement is welcomed!
+## Features
 
-# Screenshot
+1. Live upload/download speed in the menu bar (MB/s, updated every second).
+2. Start at login.
+3. Quit.
 
-![](./screenshot.png)
+## Requirements
+
+- macOS 14.6 or later.
+- Built with SwiftUI; the UI lives entirely in the menu bar (no Dock icon).
+
+## Building
+
+Open `NetSpeedMonitor.xcodeproj` in Xcode and run the `NetSpeedMonitor` scheme.
+
+## License
+
+MIT — inherited from the upstream project. See [`LICENSE`](./LICENSE).
