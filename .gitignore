@@ -11,6 +11,7 @@ xcuserdata/
 ## App packaging
 *.ipa
 *.dSYM.zip
+*.dmg
 *.dSYM
 
 ## Playgrounds

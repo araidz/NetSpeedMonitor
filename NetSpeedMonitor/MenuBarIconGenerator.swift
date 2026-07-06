@@ -50,6 +50,8 @@ final class MenuBarIconGenerator {
         // We vary the text opacity by speed, so this is not a template image.
         // `labelColor` still resolves correctly for both light and dark menu bars.
         image.isTemplate = false
+        image.accessibilityDescription =
+            "Up \(format(uploadMBps)) MB/s, down \(format(downloadMBps)) MB/s"
         return image
     }
 
@@ -91,8 +93,8 @@ final class MenuBarIconGenerator {
         switch mbps {
         case let value where value >= 1.0:   opacity = 1.0
         case let value where value >= 0.1:   opacity = 0.7
-        case let value where value >= 0.01:  opacity = 0.45
-        default:                             opacity = 0.3
+        case let value where value >= 0.01:  opacity = 0.55
+        default:                             opacity = 0.4
         }
         return NSColor.labelColor.withAlphaComponent(opacity)
     }

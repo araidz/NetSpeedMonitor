@@ -10,8 +10,8 @@ using time_point_type = std::chrono::time_point<clock_type, duration_type>;
 
 struct NetTrafficStat {
     time_point_type tp_retrieval; // time_point where this stat is retrieved
-    uint32_t ifi_ibytes = 0;      // raw ifi_ibytes message
-    uint32_t ifi_obytes = 0;      // raw ifi_obytes message
+    uint64_t ifi_ibytes = 0;      // raw ifi_ibytes message (64-bit, from if_data64)
+    uint64_t ifi_obytes = 0;      // raw ifi_obytes message (64-bit, from if_data64)
     int64_t total_ibytes = 0;     // i.e. ifi_ibytes accumulated in wider int type
     int64_t total_obytes = 0;     // i.e. ifi_obytes accumulated in wider int type
 

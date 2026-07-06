@@ -8,7 +8,7 @@
 int NetTrafficStatGenerator::update() {
 
     // Get sizing info from sysctl and alloc memory
-    int mib[] = {CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST, 0};
+    int mib[] = {CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0};
     size_t data_bytes = 0;
     if (sysctl(mib, 6, nullptr, &data_bytes, nullptr, 0) != 0) {
         return 1;
@@ -30,8 +30,8 @@ int NetTrafficStatGenerator::update() {
     uint8_t* const data_ptr_end = sysctl_buffer_ptr + data_bytes;
     while (data_ptr_cur < data_ptr_end) {
         // Expecting interface data
-        if_msghdr* ifmsg = (struct if_msghdr*)data_ptr_cur;
-        if (ifmsg->ifm_type != RTM_IFINFO) {
+        if_msghdr2* ifmsg = (struct if_msghdr2*)data_ptr_cur;
+        if (ifmsg->ifm_type != RTM_IFINFO2) {
             data_ptr_cur += ifmsg->ifm_msglen;
             continue;
         }
@@ -59,22 +59,15 @@ int NetTrafficStatGenerator::update() {
             net_traffic_stat.tp_retrieval = tp_retrieval;
             net_traffic_stat.ifi_ibytes = ifmsg->ifm_data.ifi_ibytes;
             net_traffic_stat.ifi_obytes = ifmsg->ifm_data.ifi_obytes;
-            if (net_traffic_stat.ifi_ibytes < last_net_traffic_stat.ifi_ibytes) {
-                net_traffic_stat.delta_ibytes = static_cast<int64_t>(net_traffic_stat.ifi_ibytes)
-                                                + std::numeric_limits<uint32_t>::max()
-                                                - last_net_traffic_stat.ifi_ibytes;
-            } else {
-                net_traffic_stat.delta_ibytes =
-                    static_cast<int64_t>(net_traffic_stat.ifi_ibytes) - last_net_traffic_stat.ifi_ibytes;
-            }
-            if (net_traffic_stat.ifi_obytes < last_net_traffic_stat.ifi_obytes) {
-                net_traffic_stat.delta_obytes = static_cast<int64_t>(net_traffic_stat.ifi_obytes)
-                                                + std::numeric_limits<uint32_t>::max()
-                                                - last_net_traffic_stat.ifi_obytes;
-            } else {
-                net_traffic_stat.delta_obytes =
-                    static_cast<int64_t>(net_traffic_stat.ifi_obytes) - last_net_traffic_stat.ifi_obytes;
-            }
+            // 64-bit counters (if_data64) do not wrap in practice; a decrease
+            // only means the interface counters were reset (down/up), so clamp
+            // negative deltas to zero.
+            const int64_t d_in = static_cast<int64_t>(net_traffic_stat.ifi_ibytes)
+                                 - static_cast<int64_t>(last_net_traffic_stat.ifi_ibytes);
+            const int64_t d_out = static_cast<int64_t>(net_traffic_stat.ifi_obytes)
+                                  - static_cast<int64_t>(last_net_traffic_stat.ifi_obytes);
+            net_traffic_stat.delta_ibytes = d_in < 0 ? 0 : d_in;
+            net_traffic_stat.delta_obytes = d_out < 0 ? 0 : d_out;
             net_traffic_stat.total_ibytes = last_net_traffic_stat.total_ibytes + net_traffic_stat.delta_ibytes;
             net_traffic_stat.total_obytes = last_net_traffic_stat.total_obytes + net_traffic_stat.delta_obytes;
 

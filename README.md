@@ -15,7 +15,8 @@ core) and renders the speeds directly into the menu bar.
 Compared to upstream, this version:
 
 - **Always shows MB/s** — no automatic unit switching between B/KB/MB/GB.
-- **Fixed 1-second refresh** — removed the selectable update intervals.
+- **Selectable refresh interval** — pick 0.5s / 1s / 2s / 5s from the menu.
+  Per-second rates are time-normalized, so the number stays correct at any interval.
 - **Bigger, bolder, monospaced-digit readout** that's easier to read at a glance.
 - **Monochrome speed shading** — each line's opacity reflects its speed band, so
   you can tell the throughput range without reading the number:
@@ -24,20 +25,25 @@ Compared to upstream, this version:
   | -------- | ------------- | ---------------- |
   | Fast     | ≥ 1 MB/s      | full strength    |
   | Moderate | 0.1 – 1 MB/s  | 70% opacity      |
-  | Slow     | 0.01 – 0.1    | 45% opacity      |
-  | Idle     | < 0.01 MB/s   | 30% opacity      |
+  | Slow     | 0.01 – 0.1    | 55% opacity      |
+  | Idle     | < 0.01 MB/s   | 40% opacity      |
 
 - **Arrows on the right** of the figures (`12.34 ↑` / `1.23 ↓`), with tightened
   line and edge spacing.
-- **Trimmed menu** — clicking the readout shows just **Start at Login** and **Quit**.
+- **Compact menu** — clicking the readout shows session totals (with a reset),
+  the refresh interval, **Launch at Login**, the version, and **Quit**.
 - **Modernized internals** — the state layer uses Swift's `@Observable` macro and
   `async`/`await` instead of Combine + `Timer`.
+- **64-bit byte counters** — samples via `NET_RT_IFLIST2` / `if_data64`, so the
+  counters never wrap (no 4 GB roll-over math).
 
 ## Features
 
-1. Live upload/download speed in the menu bar (MB/s, updated every second).
-2. Start at login.
-3. Quit.
+1. Live upload/download speed in the menu bar (MB/s).
+2. Selectable refresh interval (0.5–5 s).
+3. Session totals (received / sent) with a reset.
+4. Launch at login.
+5. Quit.
 
 ## Requirements
 

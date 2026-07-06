@@ -1,14 +1,25 @@
-From v1.8, the UI is built using SwiftUI, on macOS 15, with minimum system version macOS 14.6.
+# NetSpeedMonitor (personal fork)
 
-Since I haven't successfully built it with lower version of github action runner images, it is what it is now. Later if I have the chance, I would make it compatible with lower version of macOS.
+A minimal macOS menu bar app showing live upload/download speed. Personal fork
+of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
+see the README for what differs from upstream.
 
-Any PR for feature enhancement or compatibility improvement is welcomed!
+## This build
 
----
+- Always MB/s, bigger monospaced-digit readout, arrows on the right.
+- Monochrome per-line shading by speed band.
+- Selectable refresh interval (0.5 / 1 / 2 / 5 s).
+- Session totals (received / sent) with a reset, plus the version, in the menu.
+- 64-bit interface counters (`NET_RT_IFLIST2` / `if_data64`) — no 4 GB wrap.
 
-Now this app is automatically built with github actions. So it may require some processing before running.
-Run the following command to make the app runnable.
+## Requirements
+
+macOS 14.6 or later. Universal (Apple silicon + Intel).
+
+## Running an unsigned build
+
+The CI artifact is ad-hoc signed, so macOS may quarantine it. Clear it with:
 
 ```bash
-sudo xattr -rd com.apple.quarantine ./NetSpeedMonitor.app
+xattr -rd com.apple.quarantine ./NetSpeedMonitor.app
 ```

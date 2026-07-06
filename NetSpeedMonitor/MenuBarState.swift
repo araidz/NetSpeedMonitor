@@ -3,7 +3,7 @@ import ServiceManagement
 import SystemConfiguration
 import os.log
 
-public let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "elegracer")
+let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NetSpeedMonitor", category: "monitor")
 
 @MainActor
 @Observable
@@ -13,9 +13,11 @@ final class MenuBarState {
 
     /// Key used to persist the launch-at-login preference in `UserDefaults`.
     private static let autoLaunchKey = "AutoLaunchEnabled"
+    /// Key used to persist the chosen sampling interval.
+    private static let updateIntervalKey = "UpdateIntervalSeconds"
 
-    /// Fixed sampling interval, in seconds.
-    private static let updateIntervalSeconds = 1
+    /// Sampling intervals offered in the menu, in seconds.
+    static let intervalOptions: [Double] = [0.5, 1.0, 2.0, 5.0]
 
     var autoLaunchEnabled: Bool {
         didSet {
@@ -24,10 +26,24 @@ final class MenuBarState {
         }
     }
 
+    /// How often the readout refreshes, in seconds. Changing it restarts the loop.
+    var updateInterval: Double {
+        didSet {
+            guard updateInterval != oldValue else { return }
+            UserDefaults.standard.set(updateInterval, forKey: Self.updateIntervalKey)
+            startMonitoring()
+        }
+    }
+
     // MARK: - Live readings (always expressed in MB/s)
 
     private(set) var uploadSpeedMBps: Double = 0.0
     private(set) var downloadSpeedMBps: Double = 0.0
+
+    // MARK: - Session totals (bytes since launch or last reset)
+
+    private(set) var sessionDownloadBytes: Int64 = 0
+    private(set) var sessionUploadBytes: Int64 = 0
 
     /// The menu bar icon, rendered from the current speeds.
     var currentIcon: NSImage {
@@ -39,15 +55,21 @@ final class MenuBarState {
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
     @ObservationIgnored private var primaryInterface: String?
     @ObservationIgnored private let netTrafficStat = NetTrafficStatReceiver()
+    // Created once; each primary-interface query reuses this store handle.
+    @ObservationIgnored private lazy var dynamicStore: SCDynamicStore? =
+        SCDynamicStoreCreate(nil, "NetSpeedMonitor" as CFString, nil, nil)
 
     private static let bytesPerMB = 1024.0 * 1024.0
 
     // MARK: - Lifecycle
 
     init() {
-        // Restore persisted setting. (didSet observers do not fire for these
-        // initial assignments inside the initializer.)
+        // Restore persisted settings. (didSet observers do not fire for
+        // assignments made inside the initializer.)
         autoLaunchEnabled = UserDefaults.standard.bool(forKey: Self.autoLaunchKey)
+
+        let storedInterval = UserDefaults.standard.double(forKey: Self.updateIntervalKey)
+        updateInterval = storedInterval > 0 ? storedInterval : 1.0
 
         // Reflect the real login-item state rather than our stored guess.
         autoLaunchEnabled = currentAutoLaunchStatus()
@@ -57,6 +79,13 @@ final class MenuBarState {
 
     deinit {
         monitorTask?.cancel()
+    }
+
+    // MARK: - Session totals
+
+    func resetSessionTotals() {
+        sessionDownloadBytes = 0
+        sessionUploadBytes = 0
     }
 
     // MARK: - Auto launch
@@ -77,9 +106,8 @@ final class MenuBarState {
                     try service.unregister()
                 }
             }
-            logger.info("updateAutoLaunchStatus succeeded, autoLaunchEnabled: \(String(self.autoLaunchEnabled)), service.enabled: \(String(service.status == .enabled))")
         } catch {
-            logger.warning("updateAutoLaunchStatus failed: \(error.localizedDescription), autoLaunchEnabled: \(String(self.autoLaunchEnabled)), service.enabled: \(String(service.status == .enabled))")
+            logger.warning("updateAutoLaunchStatus failed: \(error.localizedDescription, privacy: .public)")
             autoLaunchEnabled = currentAutoLaunchStatus()
         }
     }
@@ -87,25 +115,28 @@ final class MenuBarState {
     // MARK: - Monitoring loop
 
     private func findPrimaryInterface() -> String? {
-        let storeRef = SCDynamicStoreCreate(nil, "FindCurrentInterfaceIpMac" as CFString, nil, nil)
-        let global = SCDynamicStoreCopyValue(storeRef, "State:/Network/Global/IPv4" as CFString)
+        let global = SCDynamicStoreCopyValue(dynamicStore, "State:/Network/Global/IPv4" as CFString)
         return global?.value(forKey: "PrimaryInterface") as? String
     }
 
     /// Takes a single traffic sample and updates the speeds (in MB/s).
     private func sample() {
         primaryInterface = findPrimaryInterface()
-        guard let primaryInterface else { return }
 
-        guard let statMap = netTrafficStat.getNetTrafficStatMap(),
+        guard let primaryInterface,
+              let statMap = netTrafficStat.getNetTrafficStatMap(),
               let stat = statMap.object(forKey: primaryInterface) as? NetTrafficStatOC else {
+            // No active interface (e.g. offline): show zero, not a stale value.
+            downloadSpeedMBps = 0.0
+            uploadSpeedMBps = 0.0
             return
         }
 
         downloadSpeedMBps = stat.ibytes_per_sec.doubleValue / Self.bytesPerMB
         uploadSpeedMBps = stat.obytes_per_sec.doubleValue / Self.bytesPerMB
 
-        logger.info("deltaIn: \(String(format: "%.4f", self.downloadSpeedMBps)) MB/s, deltaOut: \(String(format: "%.4f", self.uploadSpeedMBps)) MB/s")
+        sessionDownloadBytes += Int64(stat.delta_ibytes)
+        sessionUploadBytes += Int64(stat.delta_obytes)
     }
 
     private func startMonitoring() {
@@ -114,9 +145,8 @@ final class MenuBarState {
             guard let self else { return }
             while !Task.isCancelled {
                 self.sample()
-                try? await Task.sleep(for: .seconds(Self.updateIntervalSeconds))
+                try? await Task.sleep(for: .seconds(self.updateInterval))
             }
         }
-        logger.info("startMonitoring")
     }
 }

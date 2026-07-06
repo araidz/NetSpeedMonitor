@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     tags: [ "v*" ]
 
 jobs:
@@ -62,8 +62,8 @@ jobs:
         ditto -c -k --keepParent NetSpeedMonitor.app NetSpeedMonitor.zip
         shasum -a 256 NetSpeedMonitor.zip > NetSpeedMonitor.sha256
 
-    - name: Upload Artifacts (Master)
-      if: github.ref == 'refs/heads/master'
+    - name: Upload Artifacts (Main)
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: universal-build-${{ github.sha }}
@@ -76,7 +76,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         draft: true
-        body_path: RELEASE_NOTES.MD
+        body_path: RELEASE_NOTES.md
         files: |
           build/Release/NetSpeedMonitor.zip
           build/Release/NetSpeedMonitor.sha256
