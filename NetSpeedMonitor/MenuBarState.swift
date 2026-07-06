@@ -50,6 +50,11 @@ final class MenuBarState {
         MenuBarIconGenerator.generateIcon(uploadMBps: uploadSpeedMBps, downloadMBps: downloadSpeedMBps)
     }
 
+    /// Invoked on the main actor after every sample so the status item can
+    /// redraw its icon. The menu is rebuilt lazily on open, so it is not
+    /// driven from here.
+    var onUpdate: (@MainActor () -> Void)?
+
     // MARK: - Internal monitoring state
 
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
@@ -145,6 +150,7 @@ final class MenuBarState {
             guard let self else { return }
             while !Task.isCancelled {
                 self.sample()
+                self.onUpdate?()
                 try? await Task.sleep(for: .seconds(self.updateInterval))
             }
         }
