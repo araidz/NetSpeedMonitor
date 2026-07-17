@@ -45,9 +45,19 @@ final class MenuBarState {
     private(set) var sessionDownloadBytes: Int64 = 0
     private(set) var sessionUploadBytes: Int64 = 0
 
+    // MARK: - Speed test (on-demand, via networkQuality)
+
+    private(set) var speedTest: SpeedTestResult?
+    // Guards against launching a second test while one is in flight.
+    @ObservationIgnored private(set) var speedTestRunning = false
+    // When set, the readout renders in this colour instead of its speed band —
+    // used to flash on test completion.
+    @ObservationIgnored private var flashColor: NSColor?
+
     /// The menu bar icon, rendered from the current speeds.
     var currentIcon: NSImage {
-        MenuBarIconGenerator.generateIcon(uploadMBps: uploadSpeedMBps, downloadMBps: downloadSpeedMBps)
+        MenuBarIconGenerator.generateIcon(
+            uploadMBps: uploadSpeedMBps, downloadMBps: downloadSpeedMBps, tint: flashColor)
     }
 
     /// Invoked on the main actor after every sample so the status item can
@@ -58,7 +68,6 @@ final class MenuBarState {
     // MARK: - Internal monitoring state
 
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
-    @ObservationIgnored private var primaryInterface: String?
     @ObservationIgnored private let netTrafficStat = NetTrafficStatReceiver()
     // Created once; each primary-interface query reuses this store handle.
     @ObservationIgnored private lazy var dynamicStore: SCDynamicStore? =
@@ -91,6 +100,36 @@ final class MenuBarState {
     func resetSessionTotals() {
         sessionDownloadBytes = 0
         sessionUploadBytes = 0
+    }
+
+    // MARK: - Speed test
+
+    /// Runs one networkQuality test (~15s) off the main actor and stores the
+    /// result. The menu reads `speedTestRunning`/`speedTest` on next open.
+    func runSpeedTest() {
+        guard !speedTestRunning else { return }
+        speedTestRunning = true
+        Task {
+            defer { speedTestRunning = false }
+            do {
+                speedTest = try await SpeedTest.run()
+                await flashReadout()
+            } catch {
+                logger.warning("speed test failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    /// Blinks the menu-bar readout in the system accent colour a few times so a
+    /// finished test is noticeable even when the menu is closed. Drives the icon
+    /// directly via `onUpdate`, so it is independent of the sampling interval.
+    private func flashReadout() async {
+        for _ in 0..<3 {
+            flashColor = .controlAccentColor; onUpdate?()
+            try? await Task.sleep(for: .milliseconds(180))
+            flashColor = nil; onUpdate?()
+            try? await Task.sleep(for: .milliseconds(180))
+        }
     }
 
     // MARK: - Auto launch
@@ -126,9 +165,7 @@ final class MenuBarState {
 
     /// Takes a single traffic sample and updates the speeds (in MB/s).
     private func sample() {
-        primaryInterface = findPrimaryInterface()
-
-        guard let primaryInterface,
+        guard let primaryInterface = findPrimaryInterface(),
               let statMap = netTrafficStat.getNetTrafficStatMap(),
               let stat = statMap.object(forKey: primaryInterface) as? NetTrafficStatOC else {
             // No active interface (e.g. offline): show zero, not a stale value.
@@ -137,8 +174,8 @@ final class MenuBarState {
             return
         }
 
-        downloadSpeedMBps = stat.ibytes_per_sec.doubleValue / Self.bytesPerMB
-        uploadSpeedMBps = stat.obytes_per_sec.doubleValue / Self.bytesPerMB
+        downloadSpeedMBps = stat.ibytes_per_sec / Self.bytesPerMB
+        uploadSpeedMBps = stat.obytes_per_sec / Self.bytesPerMB
 
         sessionDownloadBytes += Int64(stat.delta_ibytes)
         sessionUploadBytes += Int64(stat.delta_obytes)

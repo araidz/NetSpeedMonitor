@@ -51,6 +51,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(action("Reset Session Totals", #selector(resetTotals)))
 
         menu.addItem(.separator())
+        if let result = state.speedTest {
+            menu.addItem(readOnly(String(format: "↓ %.2f MB/s   ↑ %.2f MB/s",
+                                         result.downloadMBps, result.uploadMBps)))
+            menu.addItem(readOnly(String(format: "Responsiveness  %.0f RPM", result.responsiveness)))
+        }
+        if state.speedTestRunning {
+            menu.addItem(readOnly("Testing…"))
+        } else {
+            menu.addItem(action("Run Speed Test", #selector(runSpeedTest)))
+        }
+
+        menu.addItem(.separator())
 
         let intervalItem = NSMenuItem(title: "Update Interval", action: nil, keyEquivalent: "")
         let submenu = NSMenu()
@@ -88,6 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func resetTotals() { state.resetSessionTotals() }
+
+    @objc private func runSpeedTest() { state.runSpeedTest() }
 
     @objc private func setInterval(_ sender: NSMenuItem) {
         if let seconds = sender.representedObject as? Double { state.updateInterval = seconds }

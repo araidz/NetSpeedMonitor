@@ -30,7 +30,7 @@ struct NetTrafficStatGenerator {
     NetTrafficStatGenerator() = default;
     ~NetTrafficStatGenerator() = default;
 
-    NetTrafficStatMap get_latest_net_traffic_stat_map() const { return net_traffic_stat_map; }
+    const NetTrafficStatMap& get_latest_net_traffic_stat_map() const { return net_traffic_stat_map; }
     int update();
 
 private:

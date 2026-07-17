@@ -31,7 +31,13 @@ Compared to upstream, this version:
 - **Arrows on the right** of the figures (`12.34 ↑` / `1.23 ↓`), with tightened
   line and edge spacing.
 - **Compact menu** — clicking the readout shows session totals (with a reset),
-  the refresh interval, **Launch at Login**, the version, and **Quit**.
+  an on-demand speed test, the refresh interval, **Launch at Login**, the
+  version, and **Quit**.
+- **One-click speed test** — runs the built-in macOS `networkQuality` tool
+  (~15 s) and shows download / upload (MB/s) and responsiveness (RPM) in the
+  menu. While it runs the live readout climbs as usual; when it finishes the
+  readout blinks in your accent colour. Requires the App Sandbox to be off (so
+  the tool can be launched), hence this build is unsandboxed.
 - **Modernized internals** — the state layer uses Swift's `@Observable` macro and
   `async`/`await` instead of Combine + `Timer`.
 - **64-bit byte counters** — samples via `NET_RT_IFLIST2` / `if_data64`, so the
@@ -42,8 +48,9 @@ Compared to upstream, this version:
 1. Live upload/download speed in the menu bar (MB/s).
 2. Selectable refresh interval (0.5–5 s).
 3. Session totals (received / sent) with a reset.
-4. Launch at login.
-5. Quit.
+4. One-click speed test via `networkQuality` (download / upload / responsiveness).
+5. Launch at login.
+6. Quit.
 
 ## Requirements
 

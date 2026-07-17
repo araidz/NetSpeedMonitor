@@ -4,7 +4,14 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
-## This build
+## What's new in 1.3
+
+- One-click speed test using the built-in macOS `networkQuality` tool (~15 s):
+  download / upload (MB/s) and responsiveness (RPM), shown in the menu. The
+  readout blinks in your accent colour when the test finishes.
+- This build is unsandboxed so it can launch `networkQuality`.
+
+## Also in this build
 
 - Always MB/s, bigger monospaced-digit readout, arrows on the right.
 - Monochrome per-line shading by speed band.

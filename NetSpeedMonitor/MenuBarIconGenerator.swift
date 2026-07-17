@@ -17,7 +17,7 @@ final class MenuBarIconGenerator {
     /// Renders the two-line up/down speed readout. Values are in MB/s; each line
     /// is shaded by its own speed band (monochrome) so the current throughput is
     /// readable at a glance.
-    static func generateIcon(uploadMBps: Double, downloadMBps: Double) -> NSImage {
+    static func generateIcon(uploadMBps: Double, downloadMBps: Double, tint: NSColor? = nil) -> NSImage {
         // Monospaced digits keep the numbers aligned and stop the width from
         // jittering as values change. Larger + bolder than the original for
         // easier reading.
@@ -29,9 +29,9 @@ final class MenuBarIconGenerator {
         paragraph.maximumLineHeight = lineHeight
 
         let attributedText = NSMutableAttributedString()
-        attributedText.append(line(symbol: "↑", valueMBps: uploadMBps, font: font, paragraph: paragraph))
+        attributedText.append(line(symbol: "↑", valueMBps: uploadMBps, font: font, paragraph: paragraph, tint: tint))
         attributedText.append(NSAttributedString(string: "\n"))
-        attributedText.append(line(symbol: "↓", valueMBps: downloadMBps, font: font, paragraph: paragraph))
+        attributedText.append(line(symbol: "↓", valueMBps: downloadMBps, font: font, paragraph: paragraph, tint: tint))
 
         let textSize = attributedText.size()
         let width = ceil(textSize.width) + horizontalPadding * 2
@@ -62,12 +62,13 @@ final class MenuBarIconGenerator {
         symbol: String,
         valueMBps: Double,
         font: NSFont,
-        paragraph: NSParagraphStyle
+        paragraph: NSParagraphStyle,
+        tint: NSColor?
     ) -> NSAttributedString {
         let text = "\(format(valueMBps)) \(symbol)"
         return NSAttributedString(string: text, attributes: [
             .font: font,
-            .foregroundColor: color(forMBps: valueMBps),
+            .foregroundColor: tint ?? color(forMBps: valueMBps),
             .paragraphStyle: paragraph
         ])
     }
