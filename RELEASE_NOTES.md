@@ -4,6 +4,11 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.4
+
+- New app icon — a distinct up/down transfer glyph on a graphite squircle,
+  replacing the inherited speedometer artwork.
+
 ## What's new in 1.3
 
 - One-click speed test using the built-in macOS `networkQuality` tool (~15 s):
