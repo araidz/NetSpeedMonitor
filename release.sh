@@ -65,7 +65,7 @@ remote_tag="$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}" |
 [[ -n "$local_tag" ]] || git tag "$tag"
 [[ -n "$remote_tag" ]] || git push origin "$tag"
 
-echo "▸ waiting for CI to build and draft $tag…"
+echo "▸ waiting for CI to build and draft ${tag}…"
 release_ready=false
 release_state=""
 for _ in $(seq 1 60); do
