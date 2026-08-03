@@ -1,7 +1,9 @@
 #pragma once
 
-#include <map>
+#include <cstdint>
+#include <string>
 #include <chrono>
+#include <map>
 #include <vector>
 
 using clock_type = std::chrono::steady_clock;
@@ -32,6 +34,7 @@ struct NetTrafficStatGenerator {
 
     const NetTrafficStatMap& get_latest_net_traffic_stat_map() const { return net_traffic_stat_map; }
     int update();
+    void reset() { net_traffic_stat_map.clear(); }
 
 private:
     NetTrafficStatMap net_traffic_stat_map;

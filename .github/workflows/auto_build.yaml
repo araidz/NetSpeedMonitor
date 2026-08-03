@@ -44,13 +44,6 @@ jobs:
           exit 1
         fi
 
-    - name: Sign Universal Binary
-      run: |
-        codesign --force --deep --sign - \
-          --options=runtime \
-          --timestamp \
-          "build/Release/NetSpeedMonitor.app"
-
     - name: Sanitize Metadata
       run: |
         xattr -cr "build/Release/NetSpeedMonitor.app"
@@ -58,6 +51,14 @@ jobs:
         xattr -r -d com.apple.metadata:kMDItemWhereFroms "build/Release/NetSpeedMonitor.app"
         plutil -replace CFBundleSupportedPlatforms -json '["MacOSX"]' \
           "build/Release/NetSpeedMonitor.app/Contents/Info.plist"
+
+    - name: Sign Universal Binary
+      run: |
+        codesign --force --deep --sign - \
+          --options=runtime \
+          --timestamp \
+          "build/Release/NetSpeedMonitor.app"
+        codesign --verify --deep --strict "build/Release/NetSpeedMonitor.app"
 
     - name: Create Distribution Package
       run: |

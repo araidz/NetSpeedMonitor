@@ -2,44 +2,43 @@
 
 #import "NetTrafficStatCpp.hpp"
 
-@implementation NetTrafficStatOC
-@end
+#include <string>
 
 @implementation NetTrafficStatReceiver {
     NetTrafficStatGenerator netTrafficStatGenerator;
 }
 
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        self.netTrafficStatMap = [[NSMutableDictionary alloc] init];
+// This function does not take pppoe into account
+- (BOOL)getStatForInterface:(NSString *)interfaceName
+            downBytesPerSec:(double *)downBytesPerSec
+              upBytesPerSec:(double *)upBytesPerSec
+             deltaDownBytes:(int64_t *)deltaDownBytes
+               deltaUpBytes:(int64_t *)deltaUpBytes {
+    if (netTrafficStatGenerator.update() != 0) {
+        return NO;
     }
-    return self;
+
+    const NetTrafficStatMap &map = netTrafficStatGenerator.get_latest_net_traffic_stat_map();
+    const char *name = interfaceName.UTF8String;
+    if (name == nullptr) {
+        return NO;
+    }
+    auto it = map.find(std::string(name));
+    if (it == map.end()) {
+        return NO;
+    }
+
+    const NetTrafficStat &stat = it->second;
+    if (downBytesPerSec) { *downBytesPerSec = stat.ibytes_per_sec; }
+    if (upBytesPerSec) { *upBytesPerSec = stat.obytes_per_sec; }
+    if (deltaDownBytes) { *deltaDownBytes = stat.delta_ibytes; }
+    if (deltaUpBytes) { *deltaUpBytes = stat.delta_obytes; }
+    return YES;
 }
 
-// This function does not take pppoe into account
-- (NSMutableDictionary *)getNetTrafficStatMap {
-
+- (void)resetBaseline {
+    netTrafficStatGenerator.reset();
     netTrafficStatGenerator.update();
-
-    const NetTrafficStatMap& net_traffic_stat_map =
-    netTrafficStatGenerator.get_latest_net_traffic_stat_map();
-
-    [_netTrafficStatMap removeAllObjects];
-    for (const auto &[interface_name, net_traffic_stat] : net_traffic_stat_map) {
-        NetTrafficStatOC *netTrafficStatsOC = [[NetTrafficStatOC alloc] init];
-        netTrafficStatsOC.delta_ibytes = net_traffic_stat.delta_ibytes;
-        netTrafficStatsOC.delta_obytes = net_traffic_stat.delta_obytes;
-        netTrafficStatsOC.ibytes_per_sec = net_traffic_stat.ibytes_per_sec;
-        netTrafficStatsOC.obytes_per_sec = net_traffic_stat.obytes_per_sec;
-
-        NSString *key = [NSString stringWithCString:interface_name.c_str()
-                                           encoding:NSASCIIStringEncoding];
-
-        [_netTrafficStatMap setObject:netTrafficStatsOC forKey:key];
-    }
-
-    return _netTrafficStatMap;
 }
 
 @end

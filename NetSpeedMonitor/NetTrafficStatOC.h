@@ -2,18 +2,14 @@
 
 #import <Foundation/Foundation.h>
 
-#import "NetTrafficStatCpp.hpp"
-
-
-@interface NetTrafficStatOC : NSObject
-@property (nonatomic, assign) NSInteger delta_ibytes;
-@property (nonatomic, assign) NSInteger delta_obytes;
-@property (nonatomic, assign) double ibytes_per_sec;
-@property (nonatomic, assign) double obytes_per_sec;
-@end
-
-
 @interface NetTrafficStatReceiver : NSObject
-@property (nonatomic, strong) NSMutableDictionary *netTrafficStatMap;
-- (NSMutableDictionary *)getNetTrafficStatMap;
+// Samples all interfaces (sizing and data sysctl calls) and fills the named interface's rates and
+// byte deltas without allocating a per-interface dictionary. Returns NO when the
+// interface is absent.
+- (BOOL)getStatForInterface:(NSString *)interfaceName
+            downBytesPerSec:(double *)downBytesPerSec
+              upBytesPerSec:(double *)upBytesPerSec
+             deltaDownBytes:(int64_t *)deltaDownBytes
+               deltaUpBytes:(int64_t *)deltaUpBytes;
+- (void)resetBaseline;
 @end

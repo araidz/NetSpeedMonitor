@@ -36,7 +36,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// The menu-bar number keeps ticking live even while the menu is open.
     private func refreshIcon() {
-        statusItem.button?.image = state.currentIcon
+        guard let button = statusItem.button else { return }
+        button.image = state.icon(for: button.effectiveAppearance)
     }
 
     // MARK: - NSMenuDelegate

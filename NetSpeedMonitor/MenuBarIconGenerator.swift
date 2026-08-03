@@ -1,6 +1,7 @@
 import AppKit
 
-final class MenuBarIconGenerator {
+@MainActor
+enum MenuBarIconGenerator {
 
     /// Standard menu bar item height.
     private static let iconHeight: CGFloat = 20
@@ -14,61 +15,77 @@ final class MenuBarIconGenerator {
     /// bar icons (positive moves it down).
     private static let verticalOffset: CGFloat = 1.5
 
+    // Monospaced digits keep the numbers aligned and stop the width from
+    // jittering as values change. Created once and reused.
+    private static let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold)
+    private static let paragraph: NSParagraphStyle = {
+        let p = NSMutableParagraphStyle()
+        p.alignment = .right
+        p.minimumLineHeight = lineHeight
+        p.maximumLineHeight = lineHeight
+        return p
+    }()
+
+    // Cache the last rendered image. The formatted text and colour band change
+    // only at coarse thresholds, so idle/steady ticks reuse the same image
+    // instead of re-drawing it. The normal rendering is keyed on the two formatted
+    // strings, their opacity bands, and the caller-provided status-button appearance.
+    private static var cachedKey: String?
+    private static var cachedImage: NSImage?
+
     /// Renders the two-line up/down speed readout. Values are in MB/s; each line
     /// is shaded by its own speed band (monochrome) so the current throughput is
     /// readable at a glance.
-    static func generateIcon(uploadMBps: Double, downloadMBps: Double, tint: NSColor? = nil) -> NSImage {
-        // Monospaced digits keep the numbers aligned and stop the width from
-        // jittering as values change. Larger + bolder than the original for
-        // easier reading.
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold)
+    static func generateIcon(uploadMBps: Double, downloadMBps: Double,
+                             appearance: NSAppearance, tint: NSColor? = nil) -> NSImage {
+        let upText = format(uploadMBps)
+        let downText = format(downloadMBps)
 
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .right
-        paragraph.minimumLineHeight = lineHeight
-        paragraph.maximumLineHeight = lineHeight
+        let upBand = tint == nil ? opacity(forMBps: uploadMBps) : 1
+        let downBand = tint == nil ? opacity(forMBps: downloadMBps) : 1
+        let key = "\(upText)|\(downText)|\(upBand)|\(downBand)|\(appearance.name.rawValue)"
+        if tint == nil, key == cachedKey, let cached = cachedImage { return cached }
 
-        let attributedText = NSMutableAttributedString()
-        attributedText.append(line(symbol: "↑", valueMBps: uploadMBps, font: font, paragraph: paragraph, tint: tint))
-        attributedText.append(NSAttributedString(string: "\n"))
-        attributedText.append(line(symbol: "↓", valueMBps: downloadMBps, font: font, paragraph: paragraph, tint: tint))
+        var image: NSImage!
+        appearance.performAsCurrentDrawingAppearance {
+            let attributedText = NSMutableAttributedString()
+            attributedText.append(line(text: "\(upText) ↑", color: tint ?? color(forMBps: uploadMBps)))
+            attributedText.append(NSAttributedString(string: "\n"))
+            attributedText.append(line(text: "\(downText) ↓", color: tint ?? color(forMBps: downloadMBps)))
 
-        let textSize = attributedText.size()
-        let width = ceil(textSize.width) + horizontalPadding * 2
+            let textSize = attributedText.size()
+            let width = ceil(textSize.width) + horizontalPadding * 2
 
-        let image = NSImage(size: NSSize(width: width, height: iconHeight), flipped: false) { rect in
-            let textRect = NSRect(
-                x: 0,
-                y: (rect.height - textSize.height) / 2 - verticalOffset,
-                width: rect.width - horizontalPadding,
-                height: textSize.height
-            )
-            attributedText.draw(in: textRect)
-            return true
+            image = NSImage(size: NSSize(width: width, height: iconHeight), flipped: false) { rect in
+                let textRect = NSRect(
+                    x: 0,
+                    y: (rect.height - textSize.height) / 2 - verticalOffset,
+                    width: rect.width - horizontalPadding,
+                    height: textSize.height
+                )
+                attributedText.draw(in: textRect)
+                return true
+            }
+
+            // We vary the text opacity by speed, so this is not a template image.
+            image.isTemplate = false
+            image.accessibilityDescription = "Up \(upText) MB/s, down \(downText) MB/s"
         }
 
-        // We vary the text opacity by speed, so this is not a template image.
-        // `labelColor` still resolves correctly for both light and dark menu bars.
-        image.isTemplate = false
-        image.accessibilityDescription =
-            "Up \(format(uploadMBps)) MB/s, down \(format(downloadMBps)) MB/s"
+        if tint == nil {
+            cachedKey = key
+            cachedImage = image
+        }
         return image
     }
 
     // MARK: - Helpers
 
     /// Builds one shaded line with the arrow on the right, e.g. "12.34 ↑".
-    private static func line(
-        symbol: String,
-        valueMBps: Double,
-        font: NSFont,
-        paragraph: NSParagraphStyle,
-        tint: NSColor?
-    ) -> NSAttributedString {
-        let text = "\(format(valueMBps)) \(symbol)"
-        return NSAttributedString(string: text, attributes: [
+    private static func line(text: String, color: NSColor) -> NSAttributedString {
+        NSAttributedString(string: text, attributes: [
             .font: font,
-            .foregroundColor: tint ?? color(forMBps: valueMBps),
+            .foregroundColor: color,
             .paragraphStyle: paragraph
         ])
     }
@@ -83,20 +100,18 @@ final class MenuBarIconGenerator {
         }
     }
 
-    /// Maps a speed (MB/s) to a monochrome shade so the range is obvious at a
-    /// glance — brighter/more solid means faster:
-    /// - Fast     (≥ 1 MB/s):    full strength
-    /// - Moderate (0.1–1 MB/s):  slightly dimmed
-    /// - Slow     (0.01–0.1):    dimmer
-    /// - Idle     (< 0.01 MB/s): faint
-    private static func color(forMBps mbps: Double) -> NSColor {
-        let opacity: CGFloat
+    /// Maps a speed (MB/s) to a monochrome opacity band — brighter means faster.
+    private static func opacity(forMBps mbps: Double) -> CGFloat {
         switch mbps {
-        case let value where value >= 1.0:   opacity = 1.0
-        case let value where value >= 0.1:   opacity = 0.7
-        case let value where value >= 0.01:  opacity = 0.55
-        default:                             opacity = 0.4
+        case let value where value >= 1.0:  return 1.0
+        case let value where value >= 0.1:  return 0.7
+        case let value where value >= 0.01: return 0.55
+        default:                            return 0.4
         }
-        return NSColor.labelColor.withAlphaComponent(opacity)
+    }
+
+    /// The label colour at the opacity band for the given speed.
+    private static func color(forMBps mbps: Double) -> NSColor {
+        NSColor.labelColor.withAlphaComponent(opacity(forMBps: mbps))
     }
 }

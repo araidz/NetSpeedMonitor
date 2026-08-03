@@ -5,6 +5,8 @@
 #include <net/route.h>
 #include <sys/sysctl.h>
 
+#include <set>
+
 int NetTrafficStatGenerator::update() {
 
     // Get sizing info from sysctl and alloc memory
@@ -28,6 +30,7 @@ int NetTrafficStatGenerator::update() {
     uint8_t* const sysctl_buffer_ptr = sysctl_buffer.data();
     uint8_t* data_ptr_cur = sysctl_buffer_ptr;
     uint8_t* const data_ptr_end = sysctl_buffer_ptr + data_bytes;
+    std::set<std::string> encountered_interfaces;
     while (data_ptr_cur < data_ptr_end) {
         // Expecting interface data
         if_msghdr2* ifmsg = (struct if_msghdr2*)data_ptr_cur;
@@ -52,6 +55,7 @@ int NetTrafficStatGenerator::update() {
             data_ptr_cur += ifmsg->ifm_msglen;
             continue;
         }
+        encountered_interfaces.insert(interface_name);
 
         if (auto& net_traffic_stat = net_traffic_stat_map[interface_name]; //
             net_traffic_stat.is_valid() && (ifmsg->ifm_flags & IFF_UP)) {
@@ -96,6 +100,14 @@ int NetTrafficStatGenerator::update() {
 
         // Continue on
         data_ptr_cur += ifmsg->ifm_msglen;
+    }
+
+    for (auto it = net_traffic_stat_map.begin(); it != net_traffic_stat_map.end();) {
+        if (encountered_interfaces.count(it->first) == 0) {
+            it = net_traffic_stat_map.erase(it);
+        } else {
+            ++it;
+        }
     }
 
     return 0;

@@ -1,6 +1,5 @@
 import SwiftUI
 import ServiceManagement
-import SystemConfiguration
 import os.log
 
 let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NetSpeedMonitor", category: "monitor")
@@ -26,12 +25,12 @@ final class MenuBarState {
         }
     }
 
-    /// How often the readout refreshes, in seconds. Changing it restarts the loop.
+    /// How often the readout refreshes, in seconds. A change takes effect after
+    /// the current sleep completes (at most the prior interval, currently 5s).
     var updateInterval: Double {
         didSet {
             guard updateInterval != oldValue else { return }
             UserDefaults.standard.set(updateInterval, forKey: Self.updateIntervalKey)
-            startMonitoring()
         }
     }
 
@@ -54,10 +53,11 @@ final class MenuBarState {
     // used to flash on test completion.
     @ObservationIgnored private var flashColor: NSColor?
 
-    /// The menu bar icon, rendered from the current speeds.
-    var currentIcon: NSImage {
+    /// The menu bar icon, rendered for the status button's appearance.
+    func icon(for appearance: NSAppearance) -> NSImage {
         MenuBarIconGenerator.generateIcon(
-            uploadMBps: uploadSpeedMBps, downloadMBps: downloadSpeedMBps, tint: flashColor)
+            uploadMBps: uploadSpeedMBps, downloadMBps: downloadSpeedMBps,
+            appearance: appearance, tint: flashColor)
     }
 
     /// Invoked on the main actor after every sample so the status item can
@@ -68,12 +68,8 @@ final class MenuBarState {
     // MARK: - Internal monitoring state
 
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
-    @ObservationIgnored private let netTrafficStat = NetTrafficStatReceiver()
-    // Created once; each primary-interface query reuses this store handle.
-    @ObservationIgnored private lazy var dynamicStore: SCDynamicStore? =
-        SCDynamicStoreCreate(nil, "NetSpeedMonitor" as CFString, nil, nil)
-
-    private static let bytesPerMB = 1024.0 * 1024.0
+    @ObservationIgnored private let sampler = NetSampler()
+    @ObservationIgnored private var sessionGeneration: UInt = 0
 
     // MARK: - Lifecycle
 
@@ -98,6 +94,7 @@ final class MenuBarState {
     // MARK: - Session totals
 
     func resetSessionTotals() {
+        sessionGeneration = sampler.resetBaseline()
         sessionDownloadBytes = 0
         sessionUploadBytes = 0
     }
@@ -158,37 +155,34 @@ final class MenuBarState {
 
     // MARK: - Monitoring loop
 
-    private func findPrimaryInterface() -> String? {
-        let global = SCDynamicStoreCopyValue(dynamicStore, "State:/Network/Global/IPv4" as CFString)
-        return global?.value(forKey: "PrimaryInterface") as? String
-    }
-
-    /// Takes a single traffic sample and updates the speeds (in MB/s).
-    private func sample() {
-        guard let primaryInterface = findPrimaryInterface(),
-              let statMap = netTrafficStat.getNetTrafficStatMap(),
-              let stat = statMap.object(forKey: primaryInterface) as? NetTrafficStatOC else {
-            // No active interface (e.g. offline): show zero, not a stale value.
-            downloadSpeedMBps = 0.0
-            uploadSpeedMBps = 0.0
-            return
+    /// Applies one off-main reading on the main actor and redraws the icon.
+    private func apply(_ reading: NetReading) {
+        downloadSpeedMBps = reading.downloadMBps
+        uploadSpeedMBps = reading.uploadMBps
+        if reading.generation == sessionGeneration {
+            sessionDownloadBytes += reading.deltaDownBytes
+            sessionUploadBytes += reading.deltaUpBytes
         }
-
-        downloadSpeedMBps = stat.ibytes_per_sec / Self.bytesPerMB
-        uploadSpeedMBps = stat.obytes_per_sec / Self.bytesPerMB
-
-        sessionDownloadBytes += Int64(stat.delta_ibytes)
-        sessionUploadBytes += Int64(stat.delta_obytes)
+        onUpdate?()
     }
 
     private func startMonitoring() {
-        monitorTask?.cancel()
-        monitorTask = Task { [weak self] in
-            guard let self else { return }
-            while !Task.isCancelled {
-                self.sample()
-                self.onUpdate?()
-                try? await Task.sleep(for: .seconds(self.updateInterval))
+        monitorTask = Task.detached(priority: .utility) { [weak self, sampler = self.sampler] in
+            while true {
+                let reading = sampler.reading()
+                guard !Task.isCancelled else { return }
+                await MainActor.run { [weak self] in
+                    self?.apply(reading)
+                }
+                guard let interval = await MainActor.run(body: { [weak self] in self?.updateInterval }) else {
+                    return
+                }
+                // A 10% tolerance allows macOS to coalesce periodic wakeups.
+                do {
+                    try await Task.sleep(for: .seconds(interval), tolerance: .seconds(interval * 0.1))
+                } catch {
+                    return
+                }
             }
         }
     }

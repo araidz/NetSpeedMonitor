@@ -4,6 +4,15 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.5 (2026-08-03)
+
+- Lower idle CPU and energy use through reused menu-bar rendering and
+  coalescible sampling.
+- More responsive UI with traffic sampling off the main thread.
+- Correct session totals across resets, interface changes or disconnects, and
+  sampling failures.
+- Support for IPv6-only primary interfaces.
+
 ## What's new in 1.4
 
 - New app icon — a distinct up/down transfer glyph on a graphite squircle,

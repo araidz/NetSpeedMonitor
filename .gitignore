@@ -66,6 +66,7 @@ fastlane/test_output
 .DS_Store
 .AppleDouble
 .LSOverride
+.claude/settings.local.json
 
 # Icon must end with two \r
 Icon
