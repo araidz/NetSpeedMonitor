@@ -1,128 +1,74 @@
 #!/usr/bin/env bash
 #
-# Tag, let GitHub Actions build the universal .zip, publish the draft it creates,
-# then update the Homebrew cask.
+# Build, tag, and publish a GitHub release locally, then update Homebrew.
 #
-#   ./release.sh <version>      e.g. ./release.sh 1.5
+#   ./release.sh 1.6
 #
-# Building happens in CI (.github/workflows/auto_build.yaml) on the tag push;
-# this waits for the drafted release, publishes it, then bumps the tap.
+# Bump MARKETING_VERSION in the Xcode project first; this only ships it.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [[ $# -ne 1 || ! $1 =~ ^[0-9]+\.[0-9]+$ ]]; then
-  echo "usage: ./release.sh 1.5" >&2
-  exit 1
-fi
-
-version="$1"
-tap="../homebrew-tap"
+version="${1:?usage: ./release.sh <version>}"
+name="netspeedmonitor"
 tag="v$version"
+tap="../homebrew-tap"
+build_dir="build/Release"
 
-for tool in gh xcodebuild git shasum unzip lipo codesign; do
+for tool in gh xcodebuild git shasum lipo codesign ditto; do
   command -v "$tool" >/dev/null || { echo "✗ required command not found: $tool" >&2; exit 1; }
 done
 gh auth status >/dev/null
 
-[[ -d "$tap/.git" ]] || { echo "✗ Homebrew tap not found at $tap" >&2; exit 1; }
-[[ -x "$tap/bump.sh" ]] || { echo "✗ missing executable $tap/bump.sh" >&2; exit 1; }
+branch="$(git symbolic-ref --quiet --short HEAD)" || { echo "✗ not on a branch" >&2; exit 1; }
+[ "$branch" = main ] || { echo "✗ current branch must be main (found $branch)" >&2; exit 1; }
+[ -z "$(git status --porcelain --untracked-files=all)" ] || { echo "✗ working tree must be clean" >&2; exit 1; }
 
-[[ -z "$(git status --porcelain --untracked-files=all)" ]] \
-  || { echo "✗ working tree must be clean" >&2; exit 1; }
 git fetch origin main --tags
-[[ "$(git branch --show-current)" == main ]] \
-  || { echo "✗ releases must be run from main" >&2; exit 1; }
-[[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] \
-  || { echo "✗ local HEAD must equal origin/main" >&2; exit 1; }
+git push origin main
 
-git -C "$tap" fetch origin main
-[[ -z "$(git -C "$tap" status --porcelain --untracked-files=all)" ]] \
-  || { echo "✗ Homebrew tap working tree must be clean" >&2; exit 1; }
-[[ "$(git -C "$tap" branch --show-current)" == main ]] \
-  || { echo "✗ Homebrew tap must be on main" >&2; exit 1; }
-# bump.sh strictly validates a local commit left behind by a failed push.
-read -r tap_behind tap_ahead < <(git -C "$tap" rev-list --left-right --count origin/main...HEAD)
-[[ "$tap_behind" -eq 0 ]] \
-  || { echo "✗ Homebrew tap main is behind or diverged from origin/main" >&2; exit 1; }
+project_version="$(xcodebuild -project NetSpeedMonitor.xcodeproj -scheme NetSpeedMonitor \
+  -configuration Release -showBuildSettings | awk '$1 == "MARKETING_VERSION" && !v { v=$3 } END { print v }')"
+[ "$project_version" = "$version" ] \
+  || { echo "✗ MARKETING_VERSION is $project_version, expected $version — bump it in the project first" >&2; exit 1; }
 
-project_version="$(xcodebuild -project "NetSpeedMonitor.xcodeproj" -scheme "NetSpeedMonitor" \
-  -configuration Release -showBuildSettings | awk '$1 == "MARKETING_VERSION" && !version { version=$3 } END { print version }')"
-[[ "$project_version" == "$version" ]] \
-  || { echo "✗ MARKETING_VERSION is $project_version, expected $version" >&2; exit 1; }
+echo "▸ building universal release…"
+rm -rf "$build_dir"
+xcodebuild \
+  -project NetSpeedMonitor.xcodeproj \
+  -scheme NetSpeedMonitor \
+  -configuration Release \
+  ARCHS="x86_64 arm64" \
+  ONLY_ACTIVE_ARCH=NO \
+  -destination 'generic/platform=macOS' \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO \
+  CONFIGURATION_BUILD_DIR="$build_dir" \
+  clean build
 
-head="$(git rev-parse HEAD)"
-local_tag=""
-if git show-ref --verify --quiet "refs/tags/$tag"; then
-  local_tag="$(git rev-list -n 1 "$tag")"
-  [[ "$local_tag" == "$head" ]] \
-    || { echo "✗ local tag $tag points to $local_tag, expected $head" >&2; exit 1; }
-fi
-remote_tag="$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}" | \
-  awk '$2 ~ /\^\{\}$/ { peeled=$1 } $2 !~ /\^\{\}$/ { direct=$1 } END { print peeled ? peeled : direct }')"
-[[ -z "$remote_tag" || "$remote_tag" == "$head" ]] \
-  || { echo "✗ remote tag $tag points to $remote_tag, expected $head" >&2; exit 1; }
-
-[[ -n "$local_tag" ]] || git tag "$tag"
-[[ -n "$remote_tag" ]] || git push origin "$tag"
-
-echo "▸ waiting for CI to build and draft ${tag}…"
-release_ready=false
-release_state=""
-for _ in $(seq 1 60); do
-  if release_info="$(gh release view "$tag" --json assets,isDraft,isPrerelease -q \
-    '[(if .isPrerelease then "prerelease" elif .isDraft then "draft" else "public" end), (([.assets[].name] | index("NetSpeedMonitor.zip")) != null and ([.assets[].name] | index("NetSpeedMonitor.sha256")) != null)] | @tsv' 2>/dev/null)"; then
-    IFS=$'\t' read -r release_state assets_ready <<< "$release_info"
-    [[ "$release_state" != prerelease ]] \
-      || { echo "✗ unexpected prerelease state for $tag" >&2; exit 1; }
-    if [[ "$assets_ready" == true ]]; then
-      release_ready=true
-      break
-    fi
-  fi
-  run_state="$(gh run list --workflow auto_build.yaml --branch "$tag" --event push --limit 1 \
-    --json status,conclusion -q '.[0] | if . == null then "" else "\(.status) \(.conclusion // "")" end')"
-  case "$run_state" in
-    ""|queued\ *|in_progress\ *|pending\ *|requested\ *|waiting\ *|completed\ success) ;;
-    completed\ *) echo "✗ release workflow failed: $run_state" >&2; exit 1 ;;
-    *) echo "✗ unexpected release workflow state: $run_state" >&2; exit 1 ;;
-  esac
-  sleep 15
-done
-[[ "$release_ready" == true ]] \
-  || { echo "✗ CI ZIP and SHA256 assets not found — check the Actions run" >&2; exit 1; }
-
-verification_dir="$(mktemp -d)"
-trap 'rm -rf "$verification_dir"' EXIT
-gh release download "$tag" \
-  --pattern NetSpeedMonitor.zip --pattern NetSpeedMonitor.sha256 --dir "$verification_dir"
-
-expected_checksum="$(awk '
-  NF == 2 && $2 == "NetSpeedMonitor.zip" && length($1) == 64 && $1 !~ /[^0-9A-Fa-f]/ {
-    count++; checksum=tolower($1); next
-  }
-  { invalid=1 }
-  END { if (!invalid && count == 1) print checksum; else exit 1 }
-' "$verification_dir/NetSpeedMonitor.sha256")" \
-  || { echo "✗ invalid NetSpeedMonitor.sha256 format" >&2; exit 1; }
-actual_checksum="$(shasum -a 256 "$verification_dir/NetSpeedMonitor.zip" | awk '{ print $1 }')"
-[[ "$actual_checksum" == "$expected_checksum" ]] \
-  || { echo "✗ downloaded ZIP checksum does not match NetSpeedMonitor.sha256" >&2; exit 1; }
-
-unzip -q "$verification_dir/NetSpeedMonitor.zip" -d "$verification_dir/extracted"
-app="$verification_dir/extracted/NetSpeedMonitor.app"
+app="$build_dir/NetSpeedMonitor.app"
 executable="$app/Contents/MacOS/NetSpeedMonitor"
-[[ -f "$executable" ]] \
-  || { echo "✗ ZIP does not contain the NetSpeedMonitor executable" >&2; exit 1; }
 architectures=" $(lipo -archs "$executable") "
 [[ "$architectures" == *" arm64 "* && "$architectures" == *" x86_64 "* ]] \
-  || { echo "✗ downloaded executable is not universal arm64/x86_64" >&2; exit 1; }
-codesign --verify --deep --strict "$app" \
-  || { echo "✗ downloaded app has an invalid signature" >&2; exit 1; }
+  || { echo "✗ built executable is not universal arm64/x86_64" >&2; exit 1; }
 
-case "$release_state" in
-  draft) gh release edit "$tag" --draft=false ;;
-  public) echo "▸ $tag is already published" ;;
-  *) echo "✗ unexpected release state: ${release_state:-missing}" >&2; exit 1 ;;
-esac
-"$tap/bump.sh" netspeedmonitor "$version"
+xattr -cr "$app"
+plutil -replace CFBundleSupportedPlatforms -json '["MacOSX"]' "$app/Contents/Info.plist"
+codesign --force --deep --sign - --options=runtime --timestamp "$app"
+codesign --verify --deep --strict "$app"
+
+( cd "$build_dir" && ditto -c -k --keepParent NetSpeedMonitor.app NetSpeedMonitor.zip \
+  && shasum -a 256 NetSpeedMonitor.zip > NetSpeedMonitor.sha256 )
+
+git rev-parse -q --verify "refs/tags/$tag" >/dev/null || git tag -a "$tag" -m "NetSpeedMonitor $tag"
+git ls-remote --exit-code --tags origin "$tag" >/dev/null 2>&1 || git push origin "$tag"
+gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" \
+  "$build_dir/NetSpeedMonitor.zip" "$build_dir/NetSpeedMonitor.sha256" \
+  --title "NetSpeedMonitor $tag" --generate-notes
+
+if [ -f "$tap/Formula/$name.rb" ] || [ -f "$tap/Casks/$name.rb" ]; then
+  "$tap/bump.sh" "$name" "$version"
+else
+  echo "△ no Homebrew entry for $name — skipping tap bump"
+fi
 echo "✓ released NetSpeedMonitor $tag"
