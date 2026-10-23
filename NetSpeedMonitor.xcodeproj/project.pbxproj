@@ -6,15 +6,34 @@
 	objectVersion = 70;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		2B1464762D68CCD400B9AE9B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B14644F2D68CCD300B9AE9B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B1464562D68CCD300B9AE9B;
+			remoteInfo = NetSpeedMonitor;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2B1464572D68CCD300B9AE9B /* NetSpeedMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetSpeedMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B1464702D68CCD400B9AE9B /* NetSpeedMonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NetSpeedMonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2B1464592D68CCD300B9AE9B /* NetSpeedMonitor */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NetSpeedMonitor; sourceTree = "<group>"; };
+		2B1464712D68CCD400B9AE9B /* NetSpeedMonitorTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NetSpeedMonitorTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2B1464742D68CCD400B9AE9B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B1464542D68CCD300B9AE9B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -29,6 +48,7 @@
 			isa = PBXGroup;
 			children = (
 				2B1464592D68CCD300B9AE9B /* NetSpeedMonitor */,
+				2B1464712D68CCD400B9AE9B /* NetSpeedMonitorTests */,
 				2B1464582D68CCD300B9AE9B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -37,6 +57,7 @@
 			isa = PBXGroup;
 			children = (
 				2B1464572D68CCD300B9AE9B /* NetSpeedMonitor.app */,
+				2B1464702D68CCD400B9AE9B /* NetSpeedMonitorTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,6 +87,29 @@
 			productReference = 2B1464572D68CCD300B9AE9B /* NetSpeedMonitor.app */;
 			productType = "com.apple.product-type.application";
 		};
+		2B1464722D68CCD400B9AE9B /* NetSpeedMonitorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B14647A2D68CCD400B9AE9B /* Build configuration list for PBXNativeTarget "NetSpeedMonitorTests" */;
+			buildPhases = (
+				2B1464732D68CCD400B9AE9B /* Sources */,
+				2B1464742D68CCD400B9AE9B /* Frameworks */,
+				2B1464752D68CCD400B9AE9B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2B1464772D68CCD400B9AE9B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				2B1464712D68CCD400B9AE9B /* NetSpeedMonitorTests */,
+			);
+			name = NetSpeedMonitorTests;
+			packageProductDependencies = (
+			);
+			productName = NetSpeedMonitorTests;
+			productReference = 2B1464702D68CCD400B9AE9B /* NetSpeedMonitorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -79,6 +123,10 @@
 					2B1464562D68CCD300B9AE9B = {
 						CreatedOnToolsVersion = 16.2;
 						LastSwiftMigration = 1620;
+					};
+					2B1464722D68CCD400B9AE9B = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 2B1464562D68CCD300B9AE9B;
 					};
 				};
 			};
@@ -97,11 +145,19 @@
 			projectRoot = "";
 			targets = (
 				2B1464562D68CCD300B9AE9B /* NetSpeedMonitor */,
+				2B1464722D68CCD400B9AE9B /* NetSpeedMonitorTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2B1464752D68CCD400B9AE9B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B1464552D68CCD300B9AE9B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -119,7 +175,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2B1464732D68CCD400B9AE9B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2B1464772D68CCD400B9AE9B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B1464562D68CCD300B9AE9B /* NetSpeedMonitor */;
+			targetProxy = 2B1464762D68CCD400B9AE9B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2B1464642D68CCD400B9AE9B /* Debug */ = {
@@ -251,7 +322,7 @@
 				CODE_SIGN_ENTITLEMENTS = NetSpeedMonitor/NetSpeedMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"NetSpeedMonitor/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
@@ -263,7 +334,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.araidz.NetSpeedMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -285,7 +356,7 @@
 				CODE_SIGN_ENTITLEMENTS = NetSpeedMonitor/NetSpeedMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"NetSpeedMonitor/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
@@ -297,13 +368,49 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.araidz.NetSpeedMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "NetSpeedMonitor/NetSpeedMonitor-Bridging-Header.h";
 				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		2B1464782D68CCD400B9AE9B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.araidz.NetSpeedMonitorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NetSpeedMonitor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NetSpeedMonitor";
+			};
+			name = Debug;
+		};
+		2B1464792D68CCD400B9AE9B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.araidz.NetSpeedMonitorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NetSpeedMonitor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NetSpeedMonitor";
 			};
 			name = Release;
 		};
@@ -324,6 +431,15 @@
 			buildConfigurations = (
 				2B1464672D68CCD400B9AE9B /* Debug */,
 				2B1464682D68CCD400B9AE9B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2B14647A2D68CCD400B9AE9B /* Build configuration list for PBXNativeTarget "NetSpeedMonitorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B1464782D68CCD400B9AE9B /* Debug */,
+				2B1464792D68CCD400B9AE9B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

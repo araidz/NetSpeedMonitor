@@ -4,6 +4,18 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.7 (2026-10-23)
+
+- Session totals now survive quitting, relaunching and updating, until you
+  press Reset Session Totals.
+- Units menu: MB/s or Mbps, plus an option to show slow speeds in K.
+- Throughput graph at the top of the menu.
+- Top Apps submenu showing the busiest processes (via `nettop`).
+- Interface picker: follow the primary interface or pin one.
+- Speed test failures are shown in the menu instead of silently ignored.
+- Update interval changes apply immediately; the readout redraws instantly on
+  light/dark switches; sampling pauses while the displays sleep.
+
 ## What's new in 1.5 (2026-08-03)
 
 - Lower idle CPU and energy use through reused menu-bar rendering and

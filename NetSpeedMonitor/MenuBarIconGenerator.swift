@@ -33,25 +33,25 @@ enum MenuBarIconGenerator {
     private static var cachedKey: String?
     private static var cachedImage: NSImage?
 
-    /// Renders the two-line up/down speed readout. Values are in MB/s; each line
-    /// is shaded by its own speed band (monochrome) so the current throughput is
-    /// readable at a glance.
-    static func generateIcon(uploadMBps: Double, downloadMBps: Double,
+    /// Renders the two-line up/down speed readout. Values are in bytes/sec; each
+    /// line is shaded by its own speed band (monochrome) so the current
+    /// throughput is readable at a glance.
+    static func generateIcon(upload: Double, download: Double, format: RateFormat,
                              appearance: NSAppearance, tint: NSColor? = nil) -> NSImage {
-        let upText = format(uploadMBps)
-        let downText = format(downloadMBps)
+        let upText = format.compact(upload)
+        let downText = format.compact(download)
 
-        let upBand = tint == nil ? opacity(forMBps: uploadMBps) : 1
-        let downBand = tint == nil ? opacity(forMBps: downloadMBps) : 1
+        let upBand = tint == nil ? opacity(for: upload) : 1
+        let downBand = tint == nil ? opacity(for: download) : 1
         let key = "\(upText)|\(downText)|\(upBand)|\(downBand)|\(appearance.name.rawValue)"
         if tint == nil, key == cachedKey, let cached = cachedImage { return cached }
 
         var image: NSImage!
         appearance.performAsCurrentDrawingAppearance {
             let attributedText = NSMutableAttributedString()
-            attributedText.append(line(text: "\(upText) ↑", color: tint ?? color(forMBps: uploadMBps)))
+            attributedText.append(line(text: "\(upText) ↑", color: tint ?? color(for: upload)))
             attributedText.append(NSAttributedString(string: "\n"))
-            attributedText.append(line(text: "\(downText) ↓", color: tint ?? color(forMBps: downloadMBps)))
+            attributedText.append(line(text: "\(downText) ↓", color: tint ?? color(for: download)))
 
             let textSize = attributedText.size()
             let width = ceil(textSize.width) + horizontalPadding * 2
@@ -69,7 +69,7 @@ enum MenuBarIconGenerator {
 
             // We vary the text opacity by speed, so this is not a template image.
             image.isTemplate = false
-            image.accessibilityDescription = "Up \(upText) MB/s, down \(downText) MB/s"
+            image.accessibilityDescription = "Up \(format.full(upload)), down \(format.full(download))"
         }
 
         if tint == nil {
@@ -90,28 +90,19 @@ enum MenuBarIconGenerator {
         ])
     }
 
-    /// Formats a MB/s value with a sensible number of decimals for its
-    /// magnitude, keeping the readout compact.
-    private static func format(_ mbps: Double) -> String {
-        switch mbps {
-        case let value where value >= 100: return String(format: "%.0f", value)
-        case let value where value >= 10:  return String(format: "%.1f", value)
-        default:                           return String(format: "%.2f", mbps)
-        }
-    }
-
-    /// Maps a speed (MB/s) to a monochrome opacity band — brighter means faster.
-    private static func opacity(forMBps mbps: Double) -> CGFloat {
-        switch mbps {
-        case let value where value >= 1.0:  return 1.0
-        case let value where value >= 0.1:  return 0.7
-        case let value where value >= 0.01: return 0.55
-        default:                            return 0.4
+    /// Maps a speed (bytes/sec) to a monochrome opacity band — brighter means
+    /// faster. Bands are fixed in MB/s whatever unit is displayed.
+    private static func opacity(for bytesPerSec: Double) -> CGFloat {
+        switch bytesPerSec / (1024 * 1024) {
+        case 1...:    return 1.0
+        case 0.1...:  return 0.7
+        case 0.01...: return 0.55
+        default:      return 0.4
         }
     }
 
     /// The label colour at the opacity band for the given speed.
-    private static func color(forMBps mbps: Double) -> NSColor {
-        NSColor.labelColor.withAlphaComponent(opacity(forMBps: mbps))
+    private static func color(for bytesPerSec: Double) -> NSColor {
+        NSColor.labelColor.withAlphaComponent(opacity(for: bytesPerSec))
     }
 }

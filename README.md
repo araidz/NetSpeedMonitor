@@ -14,7 +14,8 @@ core) and renders the speeds directly into the menu bar.
 
 Compared to upstream, this version:
 
-- **Always shows MB/s** — no automatic unit switching between B/KB/MB/GB.
+- **Fixed units** — MB/s by default, or Mbps (decimal, as ISPs quote); an
+  optional switch shows slow speeds in K (`512K`) instead of `0.50`.
 - **Selectable refresh interval** — pick 0.5s / 1s / 2s / 5s from the menu.
   Per-second rates are time-normalized, so the number stays correct at any interval.
 - **Bigger, bolder, monospaced-digit readout** that's easier to read at a glance.
@@ -45,12 +46,20 @@ Compared to upstream, this version:
 
 ## Features
 
-1. Live upload/download speed in the menu bar (MB/s).
-2. Selectable refresh interval (0.5–5 s).
-3. Session totals (received / sent) with a reset.
-4. One-click speed test via `networkQuality` (download / upload / responsiveness).
-5. Launch at login.
-6. Quit.
+1. Live upload/download speed in the menu bar (MB/s or Mbps, optional K for slow speeds).
+2. Throughput graph of the last 60 samples at the top of the menu.
+3. Top Apps — the busiest processes over one second, via the built-in `nettop`.
+4. Interface picker — follow the primary interface (default) or pin one, e.g. Wi-Fi while a VPN is up.
+5. Selectable refresh interval (0.5–5 s), applied immediately.
+6. Session totals (received / sent) that persist across relaunches, with a reset.
+7. One-click speed test via `networkQuality` (download / upload / responsiveness); failures show in the menu.
+8. Launch at login.
+9. Sampling pauses while the displays sleep.
+
+## Tests
+
+`xcodebuild test -project NetSpeedMonitor.xcodeproj -scheme NetSpeedMonitor` runs the
+unit tests (unit formatting and the `networkQuality` / `nettop` parsers).
 
 ## Requirements
 

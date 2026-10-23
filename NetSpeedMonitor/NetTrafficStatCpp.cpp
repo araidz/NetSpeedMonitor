@@ -34,6 +34,10 @@ int NetTrafficStatGenerator::update() {
     while (data_ptr_cur < data_ptr_end) {
         // Expecting interface data
         if_msghdr2* ifmsg = (struct if_msghdr2*)data_ptr_cur;
+        // A zero-length record would never advance the cursor.
+        if (ifmsg->ifm_msglen == 0) {
+            break;
+        }
         if (ifmsg->ifm_type != RTM_IFINFO2) {
             data_ptr_cur += ifmsg->ifm_msglen;
             continue;
