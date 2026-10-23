@@ -40,8 +40,6 @@ final class HistoryGraphView: NSView {
 
         let plot = NSRect(x: Self.inset, y: bounds.minY + 4,
                           width: bounds.width - Self.inset * 2, height: top - bounds.minY - 8)
-        NSColor.separatorColor.setFill()
-        NSRect(x: plot.minX, y: plot.minY, width: plot.width, height: 1).fill()
 
         guard samples.count > 1 else { return }
         // Floor of 1 KB/s keeps an idle link from scaling noise to full height.
