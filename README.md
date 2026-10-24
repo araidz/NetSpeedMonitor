@@ -15,7 +15,7 @@ core) and renders the speeds directly into the menu bar.
 Compared to upstream, this version:
 
 - **Fixed units** — MB/s by default, or Mbps (decimal, as ISPs quote); an
-  optional switch shows slow speeds in K (`512K`) instead of `0.50`.
+  optional switch shows rates under one M in K (`512K`) instead of `0.50`.
 - **Selectable refresh interval** — pick 0.5s / 1s / 2s / 5s from the menu.
   Per-second rates are time-normalized, so the number stays correct at any interval.
 - **Bigger, bolder, monospaced-digit readout** that's easier to read at a glance.
@@ -46,8 +46,8 @@ Compared to upstream, this version:
 
 ## Features
 
-1. Live upload/download speed in the menu bar (MB/s or Mbps, optional K for slow speeds).
-2. Throughput graph of the last 60 samples at the top of the menu.
+1. Live upload/download speed in the menu bar (MB/s or Mbps, optional K below one M).
+2. Throughput graph at the top of the menu, with peak up and down rates.
 3. Top Apps — the busiest processes over one second, via the built-in `nettop`.
 4. Interface picker — follow the primary interface (default) or pin one, e.g. Wi-Fi while a VPN is up.
 5. Selectable refresh interval (0.5–5 s), applied immediately.

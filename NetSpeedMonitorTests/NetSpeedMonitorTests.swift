@@ -49,3 +49,29 @@ final class ParserTests: XCTestCase {
         ])
     }
 }
+
+@MainActor
+final class HistoryGraphCaptionTests: XCTestCase {
+    func testCaptionReportsUpAndDownPeaksSeparately() {
+        let now = Date()
+        let samples = [
+            MenuBarState.Sample(down: 3 * 1024 * 1024, up: 128 * 1024, at: now.addingTimeInterval(-3)),
+            MenuBarState.Sample(down: 1 * 1024 * 1024, up: 512 * 1024, at: now.addingTimeInterval(-2)),
+            MenuBarState.Sample(down: 0, up: 0, at: now.addingTimeInterval(-1)),
+        ]
+        let view = HistoryGraphView(samples: samples, span: 60, format: RateFormat(autoScale: true))
+        XCTAssertEqual(view.accessibilityLabel(),
+                       "Throughput graph, last 1 min · Peak ↑ 512 KB/s · ↓ 3.00 MB/s")
+    }
+
+    func testSamplesOutsideTheWindowAreIgnored() {
+        let now = Date()
+        let samples = [
+            MenuBarState.Sample(down: 9 * 1024 * 1024, up: 9 * 1024 * 1024, at: now.addingTimeInterval(-120)),
+            MenuBarState.Sample(down: 1024 * 1024, up: 1024, at: now.addingTimeInterval(-1)),
+        ]
+        let view = HistoryGraphView(samples: samples, span: 60, format: RateFormat(autoScale: true))
+        XCTAssertEqual(view.accessibilityLabel(),
+                       "Throughput graph, last 1 min · Peak ↑ 1.00 KB/s · ↓ 1.00 MB/s")
+    }
+}

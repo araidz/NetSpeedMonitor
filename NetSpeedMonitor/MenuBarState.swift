@@ -30,7 +30,8 @@ final class MenuBarState {
         didSet {
             guard updateInterval != oldValue else { return }
             UserDefaults.standard.set(updateInterval, forKey: Self.updateIntervalKey)
-            history.removeAll() // the graph's time axis assumes one interval
+            // History is kept: the graph plots samples by age, so it keeps
+            // drawing through the switch instead of blanking for an interval.
             restartMonitoring()
         }
     }
@@ -68,7 +69,7 @@ final class MenuBarState {
     /// The interface the last sample came from; nil when offline.
     private(set) var currentInterface: String?
 
-    struct Sample { let down: Double; let up: Double }
+    struct Sample { let down: Double; let up: Double; let at: Date }
     /// Most recent samples, oldest first, at most `historyCapacity`.
     private(set) var history: [Sample] = []
 
@@ -217,7 +218,7 @@ final class MenuBarState {
             sessionUploadBytes += reading.deltaUpBytes
             if Date().timeIntervalSince(lastSessionSave) > 60 { saveSessionTotals() }
         }
-        history.append(Sample(down: reading.downBytesPerSec, up: reading.upBytesPerSec))
+        history.append(Sample(down: reading.downBytesPerSec, up: reading.upBytesPerSec, at: Date()))
         if history.count > Self.historyCapacity {
             history.removeFirst(history.count - Self.historyCapacity)
         }

@@ -73,11 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let format = state.format
 
         if state.history.count > 1 {
-            let span = Duration.seconds(Double(MenuBarState.historyCapacity) * state.updateInterval)
-                .formatted(.units(allowed: [.minutes, .seconds], width: .abbreviated))
             let graph = NSMenuItem()
-            graph.view = HistoryGraphView(samples: state.history, capacity: MenuBarState.historyCapacity,
-                                          span: span, format: format)
+            graph.view = HistoryGraphView(samples: state.history,
+                                          span: Double(MenuBarState.historyCapacity) * state.updateInterval,
+                                          format: format)
             menu.addItem(graph)
             menu.addItem(.separator())
         }
@@ -143,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = unit == state.rateUnit ? .on : .off
             return item
         }
-        let scale = action("Show Slow Speeds in K", #selector(toggleAutoScale))
+        let scale = action("Show K Below 1 M", #selector(toggleAutoScale))
         scale.state = state.autoScale ? .on : .off
         items += [.separator(), scale]
         return submenu("Units", items)

@@ -4,6 +4,16 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.8 (2026-10-24)
+
+- The throughput graph's caption shows the peak upload and peak download
+  separately — `last 2 min · Peak ↑ 0.33 MB/s · ↓ 1.23 MB/s` — each in the
+  colour of its line, instead of one figure for whichever direction was higher.
+- Changing the update interval no longer blanks the graph while it warms up:
+  samples are kept and placed by their timestamp, so the curve continues
+  through the switch.
+- Clearer Units switch: "Show Slow Speeds in K" is now "Show K Below 1 M".
+
 ## What's new in 1.7 (2026-10-23)
 
 - Session totals now survive quitting, relaunching and updating, until you
