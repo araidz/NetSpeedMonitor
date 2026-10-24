@@ -22,13 +22,13 @@ struct RateFormat: Equatable {
     /// Menu-bar figure without a unit: "12.3", or with auto-scale "512K" / "1.23M".
     func compact(_ bytesPerSec: Double) -> String {
         let (value, prefix) = scaled(bytesPerSec)
-        return Self.number(value) + (autoScale ? prefix : "")
+        return Self.number(value, kilo: prefix == "K") + (autoScale ? prefix : "")
     }
 
     /// Full label for menus: "12.3 MB/s", "512 KB/s", "98.4 Mbps".
     func full(_ bytesPerSec: Double) -> String {
         let (value, prefix) = scaled(bytesPerSec)
-        return Self.number(value) + " " + prefix + (unit == .megabytes ? "B/s" : "bps")
+        return Self.number(value, kilo: prefix == "K") + " " + prefix + (unit == .megabytes ? "B/s" : "bps")
     }
 
     private func scaled(_ bytesPerSec: Double) -> (Double, String) {
@@ -36,8 +36,11 @@ struct RateFormat: Equatable {
         return (bytesPerSec / bytesPerMega, "M")
     }
 
-    /// Fewer decimals as the value grows, keeping the readout compact.
-    static func number(_ value: Double) -> String {
+    /// Fewer decimals as the value grows, keeping the readout compact. K values
+    /// of ten or more are whole numbers ("512K", not "512.3K"); smaller ones keep
+    /// their decimals so slow rates don't collapse to "0".
+    static func number(_ value: Double, kilo: Bool = false) -> String {
+        if kilo && value >= 10 { return String(Int(value)) }
         switch value {
         case 100...: return String(format: "%.0f", value)
         case 10...:  return String(format: "%.1f", value)

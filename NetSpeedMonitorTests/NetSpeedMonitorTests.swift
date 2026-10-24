@@ -23,6 +23,15 @@ final class RateFormatTests: XCTestCase {
         XCTAssertEqual(format.full(3 * 1024), "3.00 KB/s")
         XCTAssertEqual(RateFormat(unit: .megabits, autoScale: true).full(1_000), "8.00 Kbps")
     }
+
+    func testKiloRatesDropTheDot() {
+        let format = RateFormat(autoScale: true)
+        XCTAssertEqual(format.compact(120.5 * 1024), "120K")
+        XCTAssertEqual(format.full(120.5 * 1024), "120 KB/s")
+        XCTAssertEqual(format.compact(999.9 * 1024), "999K")
+        // Below ten the decimals stay, so slow rates don't read "0".
+        XCTAssertEqual(format.compact(9.5 * 1024), "9.50K")
+    }
 }
 
 final class ParserTests: XCTestCase {

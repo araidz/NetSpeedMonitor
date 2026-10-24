@@ -4,6 +4,11 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.9 (2026-10-24)
+
+- K rates read as whole numbers: `120K`, `512K` instead of `120.5K`. Below ten
+  the decimals stay (`9.50K`), so slow rates don't collapse to `0`.
+
 ## What's new in 1.8 (2026-10-24)
 
 - The throughput graph's caption shows the peak upload and peak download
