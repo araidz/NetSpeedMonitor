@@ -26,6 +26,16 @@ enum MenuBarIconGenerator {
         return p
     }()
 
+    /// Width reserved for the readout — the widest figure the compact format can
+    /// produce ("00.00M") plus its arrow. Every image is drawn at this width, so
+    /// the status item never resizes: the arrows stay put and only the digits
+    /// change. A rarer wider figure draws by growing the image once instead of
+    /// being clipped.
+    private static let reservedWidth: CGFloat = {
+        let reference = NSAttributedString(string: "00.00M ↑", attributes: [.font: font])
+        return ceil(reference.size().width)
+    }()
+
     // Cache the last rendered image. The formatted text and colour band change
     // only at coarse thresholds, so idle/steady ticks reuse the same image
     // instead of re-drawing it. The normal rendering is keyed on the two formatted
@@ -54,7 +64,7 @@ enum MenuBarIconGenerator {
             attributedText.append(line(text: "\(downText) ↓", color: tint ?? color(for: download)))
 
             let textSize = attributedText.size()
-            let width = ceil(textSize.width) + horizontalPadding * 2
+            let width = max(Self.reservedWidth, ceil(textSize.width)) + horizontalPadding * 2
 
             image = NSImage(size: NSSize(width: width, height: iconHeight), flipped: false) { rect in
                 let textRect = NSRect(

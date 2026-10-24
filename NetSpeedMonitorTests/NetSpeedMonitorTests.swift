@@ -34,6 +34,28 @@ final class RateFormatTests: XCTestCase {
     }
 }
 
+@MainActor
+final class MenuBarIconTests: XCTestCase {
+    private func width(upload: Double, download: Double, format: RateFormat) -> CGFloat {
+        MenuBarIconGenerator.generateIcon(upload: upload, download: download,
+                                          format: format,
+                                          appearance: .currentDrawing()).size.width
+    }
+
+    func testWidthStaysFixedAsTheReadoutChanges() {
+        // Different digit counts and units must not resize the status item, which
+        // is what makes the arrows (and the whole readout) wiggle.
+        for format in [RateFormat(autoScale: true), RateFormat()] {
+            let widths = Set([
+                width(upload: 9.5 * 1024, download: 120.5 * 1024, format: format),
+                width(upload: 3 * 1024 * 1024, download: 850 * 1024 * 1024, format: format),
+                width(upload: 0, download: 0, format: format),
+            ])
+            XCTAssertEqual(widths.count, 1, "width changed for \(format)")
+        }
+    }
+}
+
 final class ParserTests: XCTestCase {
     func testSpeedTestConvertsBitsToBytes() throws {
         let json = #"{"dl_throughput": 800000000, "ul_throughput": 80000000, "responsiveness": 1234, "other": 1}"#

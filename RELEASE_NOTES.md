@@ -4,6 +4,11 @@ A minimal macOS menu bar app showing live upload/download speed. Personal fork
 of [elegracer/NetSpeedMonitor](https://github.com/elegracer/NetSpeedMonitor);
 see the README for what differs from upstream.
 
+## What's new in 1.10 (2026-10-24)
+
+- The menu bar readout no longer wiggles as the numbers change: the item is
+  drawn at a fixed width, so the ↑/↓ arrows stay put and only the digits move.
+
 ## What's new in 1.9 (2026-10-24)
 
 - K rates read as whole numbers: `120K`, `512K` instead of `120.5K`. Below ten
